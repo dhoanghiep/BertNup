@@ -1,0 +1,9 @@
+.ipynb_checkpoints/
+Data/Stratified_K_fold_data/
+model_checkpoint/
+lightning_logs/
+model/.ipynb_checkpoints/
+model/__pycache__/
+preprocess/.ipynb_checkpoints/
+preprocess/__pycache__/
+pretrained_dnabert-1-3/
