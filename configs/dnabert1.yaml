@@ -1,0 +1,4 @@
+model:
+  name: armheb/DNA_bert_3
+  type: dnabert1
+  kmer: 3

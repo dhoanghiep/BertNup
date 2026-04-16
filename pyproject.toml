@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bertnup"
+version = "0.2.0"
+description = "BertNup: Transformer-based nucleosome positioning prediction"
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["jupyter", "ipykernel"]
+
+[tool.setuptools.packages.find]
+include = ["bertnup*"]
+
+[project.scripts]
+bertnup = "bertnup.cli:main"

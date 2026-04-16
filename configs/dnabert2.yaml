@@ -1,0 +1,5 @@
+model:
+  name: zhihan1996/DNABERT-2-117M
+  type: dnabert2
+  fixed_length: 70
+  pooling: mean

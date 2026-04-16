@@ -2,8 +2,13 @@
 Data/Stratified_K_fold_data/
 model_checkpoint/
 lightning_logs/
-model/.ipynb_checkpoints/
-model/__pycache__/
-preprocess/.ipynb_checkpoints/
-preprocess/__pycache__/
 pretrained_dnabert-1-3/
+pretrained_bert_export/
+Results/
+plot_data/
+attention_plots/
+__pycache__/
+*.egg-info/
+dist/
+build/
+*.pyc
