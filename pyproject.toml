@@ -10,6 +10,7 @@ requires-python = ">=3.9"
 
 [project.optional-dependencies]
 dev = ["jupyter", "ipykernel"]
+gpu = ["triton>=2.1.0"]
 
 [tool.setuptools.packages.find]
 include = ["bertnup*"]
