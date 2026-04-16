@@ -41,10 +41,11 @@ def _build_dataloaders(config: Config, train_path: str, val_path: str, test_path
         val_set = create_dataset("dnabert1", val_path, kmer=mc.kmer)
         test_set = create_dataset("dnabert1", test_path, kmer=mc.kmer)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=True)
-        train_set = create_dataset("dnabert2", train_path, tokenizer=tokenizer, fixed_length=mc.fixed_length, augment_rc=tc.augment_rc)
-        val_set = create_dataset("dnabert2", val_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
-        test_set = create_dataset("dnabert2", test_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
+        trust_remote = mc.type == "dnabert2"
+        tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=trust_remote)
+        train_set = create_dataset(mc.type, train_path, tokenizer=tokenizer, fixed_length=mc.fixed_length, augment_rc=tc.augment_rc)
+        val_set = create_dataset(mc.type, val_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
+        test_set = create_dataset(mc.type, test_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
 
     train_loader = DataLoader(
         train_set,
@@ -257,21 +258,25 @@ def run_evaluation(
 
     mc = config.model
 
-    if mc.type == "dnabert1":
-        test_set = create_dataset("dnabert1", test_path, kmer=mc.kmer)
-        model_class = BertNupV1 if mc.type == "dnabert1" else BertNupV2
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=True)
-        test_set = create_dataset("dnabert2", test_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
-        model_class = BertNupV2
-
     from bertnup.models.dnabert1 import BertNupV1
     from bertnup.models.dnabert2 import BertNupV2
+    from bertnup.models.nucleotide_transformer import BertNupNT
+
+    model_classes = {
+        "dnabert1": BertNupV1,
+        "dnabert2": BertNupV2,
+        "nucleotide_transformer": BertNupNT,
+    }
+    model_class = model_classes[mc.type]
 
     if mc.type == "dnabert1":
-        model = BertNupV1.load_from_checkpoint(checkpoint_path)
+        test_set = create_dataset("dnabert1", test_path, kmer=mc.kmer)
     else:
-        model = BertNupV2.load_from_checkpoint(checkpoint_path)
+        trust_remote = mc.type == "dnabert2"
+        tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=trust_remote)
+        test_set = create_dataset(mc.type, test_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
+
+    model = model_class.load_from_checkpoint(checkpoint_path)
 
     test_loader = DataLoader(
         test_set,

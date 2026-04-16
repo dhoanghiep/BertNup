@@ -74,9 +74,21 @@ def _detect_model_type(model_name: str) -> str:
     """Auto-detect model type from the HuggingFace model name."""
     if "DNA_bert" in model_name:
         return "dnabert1"
-    elif "DNABERT-2" in model_name or "nucleotide-transformer" in model_name:
+    elif "nucleotide-transformer" in model_name:
+        return "nucleotide_transformer"
+    elif "DNABERT-2" in model_name:
         return "dnabert2"
     return "dnabert1"  # fallback
+
+
+# Defaults that differ from default.yaml per model type
+# Applied when auto-detection changes the type (user hasn't set type explicitly)
+_DEFAULT_YAML_HIDDEN_SIZE = 768
+_DEFAULT_YAML_FIXED_LENGTH = 70
+_MODEL_TYPE_DEFAULTS = {
+    "nucleotide_transformer": {"hidden_size": 1280, "fixed_length": 30},
+    "dnabert2": {"hidden_size": 768, "fixed_length": 70},
+}
 
 
 def load_config(config_path: Optional[str] = None, overrides: Optional[list[str]] = None) -> Config:
@@ -98,11 +110,18 @@ def load_config(config_path: Optional[str] = None, overrides: Optional[list[str]
         override_cfg = OmegaConf.from_dotlist(overrides)
         base = OmegaConf.merge(base, override_cfg)
 
-    # Auto-detect model type if not explicitly set differently from default
+    # Auto-detect model type if not explicitly set
     if base.model.type == "dnabert1" and "DNA_bert" not in base.model.name:
         detected = _detect_model_type(base.model.name)
         if detected != "dnabert1":
             base.model.type = detected
+            # Apply type-specific defaults only when values match default.yaml
+            # (i.e. user hasn't overridden them via config file or CLI)
+            type_defaults = _MODEL_TYPE_DEFAULTS.get(detected, {})
+            if type_defaults.get("hidden_size") and base.model.hidden_size == _DEFAULT_YAML_HIDDEN_SIZE:
+                base.model.hidden_size = type_defaults["hidden_size"]
+            if type_defaults.get("fixed_length") and base.model.fixed_length == _DEFAULT_YAML_FIXED_LENGTH:
+                base.model.fixed_length = type_defaults["fixed_length"]
 
     # Convert to structured Config
     cfg = OmegaConf.to_container(base, resolve=True)

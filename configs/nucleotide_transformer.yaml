@@ -1,0 +1,6 @@
+model:
+  name: InstaDeepAI/nucleotide-transformer-500m-human-ref
+  type: nucleotide_transformer
+  fixed_length: 30
+  hidden_size: 1280
+  pooling: mean

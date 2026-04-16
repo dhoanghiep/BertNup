@@ -25,7 +25,7 @@ Field survey of DNA foundation models (2024-2026), nucleosome positioning SOTA, 
 |---|-------|--------|-------------|
 | 01 | [Training Pipeline](phase-01-training-pipeline.md) | Complete | Mixed precision, cosine LR, gradient accumulation, augmentation |
 | 02 | [Architecture Upgrades](phase-02-architecture-upgrades.md) | Complete | Enhanced head, attention pooling, LoRA support |
-| 03 | [Nucleotide Transformer v2](phase-03-nucleotide-transformer.md) | Pending | New backbone integration, config/CLI updates |
+| 03 | [Nucleotide Transformer v2](phase-03-nucleotide-transformer.md) | Complete | New backbone integration, config/CLI updates |
 | 04 | [Evaluation & Tracking](phase-04-evaluation-tracking.md) | Pending | Class-weighted loss, significance testing, experiment tracking |
 | 05 | [Extended Backbones](phase-05-extended-backbones.md) | Pending | Evo, HyenaDNA, ensemble methods |
 

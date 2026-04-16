@@ -6,6 +6,7 @@ from bertnup.config import ModelConfig
 from bertnup.models.base import BertNupBase
 from bertnup.models.dnabert1 import BertNupV1
 from bertnup.models.dnabert2 import BertNupV2
+from bertnup.models.nucleotide_transformer import BertNupNT
 
 
 def create_model(model_config: ModelConfig, num_training_steps: int, warmup_ratio: float = 0.1) -> BertNupBase:
@@ -34,6 +35,11 @@ def create_model(model_config: ModelConfig, num_training_steps: int, warmup_rati
         )
     elif model_config.type == "dnabert2":
         return BertNupV2(
+            **common_kwargs,
+            pooling=model_config.pooling,
+        )
+    elif model_config.type == "nucleotide_transformer":
+        return BertNupNT(
             **common_kwargs,
             pooling=model_config.pooling,
         )

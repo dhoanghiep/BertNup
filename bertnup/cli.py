@@ -223,15 +223,15 @@ def _add_common_args(parser: argparse.ArgumentParser):
     parser.add_argument("--config", type=str, default=None, help="Path to YAML config file")
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
     parser.add_argument("--device", type=str, default=None, choices=["auto", "cpu", "gpu"], help="Device")
-    parser.add_argument("--model-name", type=str, default=None, help="HuggingFace model name or path")
+    parser.add_argument("--model-name", type=str, default=None, help="HuggingFace model name (e.g. armheb/DNA_bert_3, zhihan1996/DNABERT-2-117M, InstaDeepAI/nucleotide-transformer-500m-human-ref)")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
 
 def _add_training_args(parser: argparse.ArgumentParser):
     """Add training-related arguments."""
     parser.add_argument("--kmer", type=int, default=None, help="K-mer size for DNABERT-1")
-    parser.add_argument("--fixed-length", type=int, default=None, help="Max token length for DNABERT-2")
-    parser.add_argument("--pooling", type=str, default=None, choices=["mean", "max", "attention"], help="Pooling strategy (DNABERT-2)")
+    parser.add_argument("--fixed-length", type=int, default=None, help="Max token length (DNABERT-2: 70, NT: 30)")
+    parser.add_argument("--pooling", type=str, default=None, choices=["mean", "max", "attention"], help="Pooling strategy (DNABERT-2, NT)")
     parser.add_argument("--head-type", type=str, default=None, choices=["single", "enhanced"], help="Classification head type")
     parser.add_argument("--use-lora", action="store_true", default=False, help="Enable LoRA parameter-efficient fine-tuning")
     parser.add_argument("--lora-rank", type=int, default=None, help="LoRA rank")
