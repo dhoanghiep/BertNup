@@ -21,6 +21,10 @@ class ModelConfig:
     reinit_layers: int = 0
     dropout: float = 0.1
     hidden_size: int = 768
+    head_type: str = "single"
+    use_lora: bool = False
+    lora_rank: int = 8
+    lora_alpha: int = 32
 
 
 @dataclass
@@ -35,6 +39,10 @@ class TrainingConfig:
     val_check_interval: float = 0.1
     max_grad_norm: float = 10.0
     early_stopping_patience: Optional[int] = None
+    precision: str = "32"
+    gradient_accumulation_steps: int = 1
+    lr_scheduler_type: str = "linear"
+    augment_rc: bool = False
 
 
 @dataclass

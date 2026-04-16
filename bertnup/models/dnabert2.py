@@ -6,13 +6,14 @@ import torch
 from transformers import AutoModel
 
 from bertnup.models.base import BertNupBase
+from bertnup.models.pooling import create_pooling
 
 
 class BertNupV2(BertNupBase):
     """DNABERT-2 model with pooling and classification head.
 
     Uses AutoModel to load a pretrained DNABERT-2 backbone and applies
-    mean or max pooling over the last hidden state before the classification head.
+    configurable pooling over the last hidden state before the classification head.
     """
 
     def __init__(
@@ -25,6 +26,10 @@ class BertNupV2(BertNupBase):
         dropout: float = 0.1,
         hidden_size: int = 768,
         pooling: str = "mean",
+        head_type: str = "single",
+        use_lora: bool = False,
+        lora_rank: int = 8,
+        lora_alpha: int = 32,
     ):
         super().__init__(
             pretrained_model_name=pretrained_model_name,
@@ -34,19 +39,17 @@ class BertNupV2(BertNupBase):
             num_training_steps=num_training_steps,
             dropout=dropout,
             hidden_size=hidden_size,
+            head_type=head_type,
+            use_lora=use_lora,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
         )
         self.dnabert = AutoModel.from_pretrained(pretrained_model_name, trust_remote_code=True)
-        self.pooling = pooling
-
-    def _pool(self, hidden_state: torch.Tensor) -> torch.Tensor:
-        """Pool sequence dimension of last_hidden_state."""
-        if self.pooling == "max":
-            return torch.max(hidden_state, dim=1)[0]
-        return torch.mean(hidden_state, dim=1)
+        self.dnabert = self._apply_lora(self.dnabert)
+        self.pooler = create_pooling(pooling, hidden_size)
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, labels: torch.Tensor | None = None):
         output = self.dnabert(input_ids, attention_mask=attention_mask)
-        x = self._pool(output["last_hidden_state"])
-        x = self.dropout1(x)
-        logits = self.linear1(x)
+        x = self.pooler(output["last_hidden_state"], attention_mask)
+        logits = self.classifier(x)
         return self._compute_loss_and_probas(logits, labels)

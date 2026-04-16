@@ -62,8 +62,11 @@ Refactored notebooks in `notebooks/` import from the `bertnup` package. Paths us
 ## Setup
 
 ```bash
+conda activate bertnup  # Use the bertnup conda environment
 pip install -e .        # Install package with CLI
 bertnup --help          # Verify installation
 ```
+
+**Note:** On macOS, set `KMP_DUPLICATE_LIB_OK=TRUE` before running Python to avoid OpenMP duplicate lib crash.
 
 Pre-trained DNABERT models are downloaded automatically by HuggingFace transformers.

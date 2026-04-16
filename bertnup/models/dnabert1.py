@@ -25,6 +25,10 @@ class BertNupV1(BertNupBase):
         dropout: float = 0.1,
         hidden_size: int = 768,
         reinit_layers: int = 0,
+        head_type: str = "single",
+        use_lora: bool = False,
+        lora_rank: int = 8,
+        lora_alpha: int = 32,
     ):
         super().__init__(
             pretrained_model_name=pretrained_model_name,
@@ -34,8 +38,13 @@ class BertNupV1(BertNupBase):
             num_training_steps=num_training_steps,
             dropout=dropout,
             hidden_size=hidden_size,
+            head_type=head_type,
+            use_lora=use_lora,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
         )
         self.dnabert = AutoModel.from_pretrained(pretrained_model_name)
+        self.dnabert = self._apply_lora(self.dnabert)
 
         if reinit_layers > 0:
             for i in range(reinit_layers):
@@ -43,6 +52,5 @@ class BertNupV1(BertNupBase):
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, labels: torch.Tensor | None = None):
         x = self.dnabert(input_ids, attention_mask=attention_mask)["pooler_output"]
-        x = self.dropout1(x)
-        logits = self.linear1(x)
+        logits = self.classifier(x)
         return self._compute_loss_and_probas(logits, labels)

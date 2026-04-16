@@ -10,13 +10,15 @@ from torch import nn
 from transformers import get_linear_schedule_with_warmup
 
 from bertnup.data.metrics import compute_all_metrics
+from bertnup.models.heads import create_head
 
 
 class BertNupBase(LightningModule):
     """Abstract base for BertNup models.
 
-    Subclasses must implement `forward()` to define how the BERT backbone
-    processes inputs through the classification head.
+    Subclasses must implement `_build_backbone()` to load the pretrained
+    model and `forward()` to define the forward pass through the head.
+    Optionally applies LoRA to the backbone for parameter-efficient fine-tuning.
     """
 
     def __init__(
@@ -28,12 +30,38 @@ class BertNupBase(LightningModule):
         num_training_steps: int = 0,
         dropout: float = 0.1,
         hidden_size: int = 768,
+        lr_scheduler_type: str = "linear",
+        head_type: str = "single",
+        use_lora: bool = False,
+        lora_rank: int = 8,
+        lora_alpha: int = 32,
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.dropout1 = nn.Dropout(dropout)
-        self.linear1 = nn.Linear(hidden_size, 2)
+        self.classifier = create_head(
+            head_type=head_type,
+            hidden_size=hidden_size,
+            num_classes=2,
+            dropout=dropout,
+        )
         self._validation_outputs: list[dict[str, Any]] = []
+
+    def _apply_lora(self, backbone):
+        """Optionally wrap backbone with LoRA adapters via PEFT."""
+        if not self.hparams.use_lora:
+            return backbone
+        try:
+            from peft import LoraConfig, get_peft_model
+        except ImportError:
+            raise ImportError("peft is required for LoRA. Install with: pip install peft")
+        config = LoraConfig(
+            r=self.hparams.lora_rank,
+            lora_alpha=self.hparams.lora_alpha,
+            target_modules=["query", "key", "value", "dense"],
+            lora_dropout=0.1,
+            bias="none",
+        )
+        return get_peft_model(backbone, config)
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, labels: torch.Tensor | None = None):
         raise NotImplementedError("Subclasses must implement forward()")
@@ -90,11 +118,20 @@ class BertNupBase(LightningModule):
             lr=self.hparams.learning_rate,
             weight_decay=self.hparams.weight_decay,
         )
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer,
-            self.hparams.warmup_steps,
-            self.hparams.num_training_steps,
-        )
+        scheduler_type = getattr(self.hparams, "lr_scheduler_type", "linear")
+        if scheduler_type == "cosine":
+            from transformers import get_cosine_schedule_with_warmup
+            scheduler = get_cosine_schedule_with_warmup(
+                optimizer,
+                self.hparams.warmup_steps,
+                self.hparams.num_training_steps,
+            )
+        else:
+            scheduler = get_linear_schedule_with_warmup(
+                optimizer,
+                self.hparams.warmup_steps,
+                self.hparams.num_training_steps,
+            )
         scheduler_cfg = {
             "scheduler": scheduler,
             "interval": "step",

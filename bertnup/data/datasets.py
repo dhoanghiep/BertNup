@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
+from bertnup.data.augmentation import augment_with_reverse_complement
 from bertnup.data.sequences import DNASequence
 
 
@@ -17,8 +18,10 @@ class Dnabert1Dataset(Dataset):
     armheb/DNA_bert_{kmer} tokenizers.
     """
 
-    def __init__(self, data_path: str, kmer: int, max_token_length: int | None = None):
+    def __init__(self, data_path: str, kmer: int, max_token_length: int | None = None, augment_rc: bool = False):
         dataframe = pd.read_csv(data_path)
+        if augment_rc:
+            dataframe = augment_with_reverse_complement(dataframe)
         self.kmer = kmer
         self.len = len(dataframe)
         self.data = dataframe
@@ -57,8 +60,11 @@ class Dnabert2Dataset(Dataset):
         data_path: str,
         tokenizer: AutoTokenizer,
         fixed_length: int = 70,
+        augment_rc: bool = False,
     ):
         dataframe = pd.read_csv(data_path)
+        if augment_rc:
+            dataframe = augment_with_reverse_complement(dataframe)
         self.len = len(dataframe)
         self.data = dataframe
         self.tokenizer = tokenizer
@@ -86,15 +92,16 @@ def create_dataset(
     tokenizer: AutoTokenizer | None = None,
     fixed_length: int = 70,
     max_token_length: int | None = None,
+    augment_rc: bool = False,
 ) -> Dataset:
     """Factory function to create the appropriate dataset class."""
     if model_type == "dnabert1":
         if kmer is None:
             raise ValueError("kmer is required for dnabert1 model type")
-        return Dnabert1Dataset(data_path, kmer, max_token_length)
+        return Dnabert1Dataset(data_path, kmer, max_token_length, augment_rc=augment_rc)
     elif model_type == "dnabert2":
         if tokenizer is None:
             raise ValueError("tokenizer is required for dnabert2 model type")
-        return Dnabert2Dataset(data_path, tokenizer, fixed_length)
+        return Dnabert2Dataset(data_path, tokenizer, fixed_length, augment_rc=augment_rc)
     else:
         raise ValueError(f"Unknown model type: {model_type}")

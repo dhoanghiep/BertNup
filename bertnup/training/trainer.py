@@ -37,12 +37,12 @@ def _build_dataloaders(config: Config, train_path: str, val_path: str, test_path
     tc = config.training
 
     if mc.type == "dnabert1":
-        train_set = create_dataset("dnabert1", train_path, kmer=mc.kmer)
+        train_set = create_dataset("dnabert1", train_path, kmer=mc.kmer, augment_rc=tc.augment_rc)
         val_set = create_dataset("dnabert1", val_path, kmer=mc.kmer)
         test_set = create_dataset("dnabert1", test_path, kmer=mc.kmer)
     else:
         tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=True)
-        train_set = create_dataset("dnabert2", train_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
+        train_set = create_dataset("dnabert2", train_path, tokenizer=tokenizer, fixed_length=mc.fixed_length, augment_rc=tc.augment_rc)
         val_set = create_dataset("dnabert2", val_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
         test_set = create_dataset("dnabert2", test_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
 
@@ -65,7 +65,7 @@ def _build_dataloaders(config: Config, train_path: str, val_path: str, test_path
         num_workers=tc.num_workers,
     )
 
-    num_training_steps = len(train_loader) * tc.epochs
+    num_training_steps = len(train_loader) * tc.epochs // tc.gradient_accumulation_steps
     return train_loader, val_loader, test_loader, test_set, num_training_steps
 
 
@@ -89,10 +89,11 @@ def run_training(config: Config, data_dir: str) -> dict:
         config, train_path, val_path, test_path
     )
 
-    model = create_model(config.model, num_training_steps)
+    model = create_model(config.model, num_training_steps, warmup_ratio=config.training.warmup_ratio)
     # Override learning rate from training config
     model.hparams.learning_rate = config.training.learning_rate
     model.hparams.weight_decay = config.training.weight_decay
+    model.hparams.lr_scheduler_type = config.training.lr_scheduler_type
 
     checkpoint_dir = os.path.join(config.output.checkpoint_dir, config.model.name.replace("/", "_"))
     checkpoint_callback = ModelCheckpoint(
@@ -116,6 +117,8 @@ def run_training(config: Config, data_dir: str) -> dict:
     trainer = Trainer(
         accelerator=_get_accelerator(config.device),
         devices=1,
+        precision=config.training.precision,
+        accumulate_grad_batches=config.training.gradient_accumulation_steps,
         gradient_clip_val=config.training.max_grad_norm,
         max_epochs=config.training.epochs,
         callbacks=callbacks,
@@ -182,9 +185,10 @@ def run_kfold_cv(
             config, train_path, val_path, test_path
         )
 
-        model = create_model(config.model, num_training_steps)
+        model = create_model(config.model, num_training_steps, warmup_ratio=config.training.warmup_ratio)
         model.hparams.learning_rate = config.training.learning_rate
         model.hparams.weight_decay = config.training.weight_decay
+        model.hparams.lr_scheduler_type = config.training.lr_scheduler_type
 
         checkpoint_dir = os.path.join(
             config.output.checkpoint_dir, f"{data_name}_fold{no_split}"
@@ -204,6 +208,8 @@ def run_kfold_cv(
         trainer = Trainer(
             accelerator=_get_accelerator(config.device),
             devices=1,
+            precision=config.training.precision,
+            accumulate_grad_batches=config.training.gradient_accumulation_steps,
             gradient_clip_val=config.training.max_grad_norm,
             max_epochs=config.training.epochs,
             callbacks=callbacks,

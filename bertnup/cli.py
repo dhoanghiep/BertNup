@@ -47,8 +47,24 @@ def _build_config(args) -> "Config":
         overrides.append(f"model.reinit_layers={args.reinit_layers}")
     if hasattr(args, "pooling") and args.pooling is not None:
         overrides.append(f"model.pooling={args.pooling}")
+    if hasattr(args, "head_type") and args.head_type is not None:
+        overrides.append(f"model.head_type={args.head_type}")
+    if hasattr(args, "use_lora") and args.use_lora:
+        overrides.append("model.use_lora=true")
+    if hasattr(args, "lora_rank") and args.lora_rank is not None:
+        overrides.append(f"model.lora_rank={args.lora_rank}")
+    if hasattr(args, "lora_alpha") and args.lora_alpha is not None:
+        overrides.append(f"model.lora_alpha={args.lora_alpha}")
     if hasattr(args, "early_stopping_patience") and args.early_stopping_patience is not None:
         overrides.append(f"training.early_stopping_patience={args.early_stopping_patience}")
+    if hasattr(args, "precision") and args.precision is not None:
+        overrides.append(f"training.precision={args.precision}")
+    if hasattr(args, "gradient_accumulation_steps") and args.gradient_accumulation_steps is not None:
+        overrides.append(f"training.gradient_accumulation_steps={args.gradient_accumulation_steps}")
+    if hasattr(args, "lr_scheduler") and args.lr_scheduler is not None:
+        overrides.append(f"training.lr_scheduler_type={args.lr_scheduler}")
+    if hasattr(args, "augment_rc") and args.augment_rc:
+        overrides.append("training.augment_rc=true")
     if hasattr(args, "seed") and args.seed is not None:
         overrides.append(f"seed={args.seed}")
     if hasattr(args, "device") and args.device is not None:
@@ -215,7 +231,11 @@ def _add_training_args(parser: argparse.ArgumentParser):
     """Add training-related arguments."""
     parser.add_argument("--kmer", type=int, default=None, help="K-mer size for DNABERT-1")
     parser.add_argument("--fixed-length", type=int, default=None, help="Max token length for DNABERT-2")
-    parser.add_argument("--pooling", type=str, default=None, choices=["mean", "max"], help="Pooling strategy (DNABERT-2)")
+    parser.add_argument("--pooling", type=str, default=None, choices=["mean", "max", "attention"], help="Pooling strategy (DNABERT-2)")
+    parser.add_argument("--head-type", type=str, default=None, choices=["single", "enhanced"], help="Classification head type")
+    parser.add_argument("--use-lora", action="store_true", default=False, help="Enable LoRA parameter-efficient fine-tuning")
+    parser.add_argument("--lora-rank", type=int, default=None, help="LoRA rank")
+    parser.add_argument("--lora-alpha", type=int, default=None, help="LoRA alpha")
     parser.add_argument("--learning-rate", type=float, default=None)
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size-train", type=int, default=None)
@@ -226,6 +246,10 @@ def _add_training_args(parser: argparse.ArgumentParser):
     parser.add_argument("--dropout", type=float, default=None)
     parser.add_argument("--reinit-layers", type=int, default=None, help="Reinitialize last N BERT layers")
     parser.add_argument("--early-stopping-patience", type=int, default=None)
+    parser.add_argument("--precision", type=str, default=None, choices=["32", "16-mixed", "bf16"], help="Training precision")
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=None, help="Gradient accumulation steps")
+    parser.add_argument("--lr-scheduler", type=str, default=None, choices=["linear", "cosine"], help="LR scheduler type")
+    parser.add_argument("--augment-rc", action="store_true", default=False, help="Augment with reverse complement")
 
 
 def build_parser() -> argparse.ArgumentParser:
