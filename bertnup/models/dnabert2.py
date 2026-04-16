@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import torch
-from transformers import AutoModel
+from transformers import AutoConfig, AutoModel
 
 from bertnup.models.base import BertNupBase
 from bertnup.models.pooling import create_pooling
@@ -44,7 +44,13 @@ class BertNupV2(BertNupBase):
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
-        self.dnabert = AutoModel.from_pretrained(pretrained_model_name, trust_remote_code=True)
+        # Pre-load config and ensure pad_token_id is set (transforms 5.x compat)
+        backbone_config = AutoConfig.from_pretrained(pretrained_model_name, trust_remote_code=True)
+        if not hasattr(backbone_config, "pad_token_id") or backbone_config.pad_token_id is None:
+            backbone_config.pad_token_id = 0
+        self.dnabert = AutoModel.from_pretrained(
+            pretrained_model_name, config=backbone_config, trust_remote_code=True
+        )
         self.dnabert = self._apply_lora(self.dnabert)
         self.pooler = create_pooling(pooling, hidden_size)
 
