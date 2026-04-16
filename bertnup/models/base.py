@@ -35,6 +35,7 @@ class BertNupBase(LightningModule):
         use_lora: bool = False,
         lora_rank: int = 8,
         lora_alpha: int = 32,
+        class_weights: list[float] | None = None,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -45,6 +46,12 @@ class BertNupBase(LightningModule):
             dropout=dropout,
         )
         self._validation_outputs: list[dict[str, Any]] = []
+
+        # Store class weights as a buffer so they move with the model to GPU/CPU
+        if class_weights is not None:
+            self.register_buffer("class_weights", torch.tensor(class_weights, dtype=torch.float32))
+        else:
+            self.class_weights = None
 
     def _apply_lora(self, backbone):
         """Optionally wrap backbone with LoRA adapters via PEFT."""
@@ -73,7 +80,7 @@ class BertNupBase(LightningModule):
         probas = torch.softmax(logits, dim=1)[:, 1]
         loss = torch.tensor(0.0, device=logits.device)
         if labels is not None:
-            loss = nn.CrossEntropyLoss()(logits, labels)
+            loss = nn.CrossEntropyLoss(weight=self.class_weights)(logits, labels)
         return loss, probas
 
     def predict_step(self, batch: dict, batch_idx: int) -> torch.Tensor:

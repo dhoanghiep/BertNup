@@ -1,7 +1,7 @@
 # Phase 04: Evaluation & Experiment Tracking
 
 **Priority:** Medium
-**Status:** Pending
+**Status:** Complete
 **Risk:** Low
 **Dependencies:** Phase 01 (training pipeline)
 
@@ -72,20 +72,20 @@ Improve evaluation rigor with class-weighted loss, bootstrap significance testin
 
 ## Todo List
 
-- [ ] Implement class-weighted loss in base.py
-- [ ] Add bootstrap significance testing to metrics.py
-- [ ] Create evaluation.py with cross-species workflow
-- [ ] Add optional WandB logging to trainer.py
-- [ ] Add `evaluate_cross_species` CLI command
-- [ ] Update configs and documentation
+- [x] Implement class-weighted loss in base.py
+- [x] Add bootstrap significance testing to metrics.py
+- [x] Create evaluation.py with cross-species workflow
+- [x] Add optional WandB logging to trainer.py
+- [x] Add `evaluate_cross_species` CLI command
+- [x] Update configs and documentation
 
 ## Success Criteria
 
-- [ ] Class-weighted loss trains without errors
-- [ ] Bootstrap testing produces confidence intervals
-- [ ] Cross-species eval reports per-species metrics
-- [ ] WandB logs metrics when enabled, no error when disabled
-- [ ] Significance testing confirms/rejects improvements between models
+- [x] Class-weighted loss trains without errors
+- [x] Bootstrap testing produces confidence intervals
+- [x] Cross-species eval reports per-species metrics
+- [x] WandB logs metrics when enabled, no error when disabled
+- [x] Significance testing confirms/rejects improvements between models
 
 ## Risk Assessment
 
@@ -93,4 +93,4 @@ Improve evaluation rigor with class-weighted loss, bootstrap significance testin
 
 ## Next Steps
 
-- Can proceed in parallel with Phase 02 and Phase 03
+- Phase complete - all features implemented successfully

@@ -1,7 +1,7 @@
 # BertNup System Architecture Documentation
 
 **Date:** 2026-04-16  
-**Version:** 2.0 (Phase 03 Complete)  
+**Version:** 2.1 (Phase 04-05 Complete)  
 **Branch:** feat/modernize-training-architecture  
 
 ## System Overview
@@ -18,6 +18,7 @@ BertNup is a PyTorch Lightning-based system for nucleosome positioning predictio
 │  ├─ bertnup train                                                  │
 │  ├─ bertnup evaluate                                              │
 │  ├─ bertnup cross_validate                                        │
+│  ├─ bertnup evaluate_cross_species                                 │
 │  └─ bertnup visualize_attention                                  │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Configuration System (config.py)                                 │
@@ -31,7 +32,8 @@ BertNup is a PyTorch Lightning-based system for nucleosome positioning predictio
 │  ├─ Tokenization (datasets.py)                                    │
 │  │  ├─ Dnabert1Dataset (k-mer tokenization)                        │
 │  │  └─ Dnabert2Dataset (raw sequence tokenization)                 │
-│  └─ Metrics computation (metrics.py)                              │
+│  ├─ Metrics computation (metrics.py)                              │
+│  └─ Bootstrap significance testing (compute_metrics_with_ci)       │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Model Architecture                                                │
 │  ├─ BertNupBase (base.py)                                          │
@@ -40,14 +42,21 @@ BertNup is a PyTorch Lightning-based system for nucleosome positioning predictio
 │  │  └─ Metrics logging                                              │
 │  ├─ BertNupV1 (dnabert1.py) - DNABERT-1 backbone                  │
 │  ├─ BertNupV2 (dnabert2.py) - DNABERT-2 backbone                  │
-│  └─ BertNupNT (nucleotide_transformer.py) - NT v2 backbone         │
+│  ├─ BertNupNT (nucleotide_transformer.py) - NT v2 backbone         │
+│  ├─ BertNupEvo (evo.py) - Evo backbone                            │
+│  ├─ BertNupSSM (ssm.py) - HyenaDNA/Caduceus backbones            │
+│  ├─ Ensemble (ensemble.py) - Multi-model prediction               │
+│  └─ BertNupAttention (attention.py) - Attention extraction        │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Training & Evaluation Pipeline                                  │
 │  ├─ PyTorch Lightning Trainer (trainer.py)                        │
 │  ├─ Mixed precision training                                      │
 │  ├─ Cosine LR scheduling                                          │
 │  ├─ Early stopping                                                │
-│  └─ Cross-validation framework                                     │
+│  ├─ Cross-validation framework                                     │
+│  ├─ Cross-species evaluation (evaluation.py)                     │
+│  ├─ Bootstrap significance testing (evaluation.py, metrics.py)    │
+│  └─ Experiment tracking (trainer.py)                               │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Visualization & Analysis                                         │
 │  ├─ Attention visualization (attention_viz.py)                   │
@@ -686,7 +695,10 @@ configs/
 ├── default.yaml              # Base configuration
 ├── dnabert1.yaml            # DNABERT-1 specific settings
 ├── dnabert2.yaml            # DNABERT-2 specific settings
-└── nucleotide_transformer.yaml # NT v2 specific settings
+├── nucleotide_transformer.yaml # NT v2 specific settings
+├── evo.yaml                 # Evo backbone settings
+├── hyena-dna.yaml           # HyenaDNA backbone settings
+└── caduceus.yaml            # Caduceus backbone settings
 ```
 
 ### Configuration Structure
@@ -867,25 +879,26 @@ def create_model(model_type: str, config: ModelConfig) -> BertNupBase:
 - **PyTorch**: 2.0+
 - **CUDA**: 11.7+ for best performance
 
-## Future Architecture Extensions
+## Implemented Architecture Extensions
 
-### Phase 04: Enhanced Evaluation
-- **Class-weighted loss**: Handle imbalanced datasets
-- **Bootstrap significance testing**: Statistical validation
-- **Experiment tracking**: WandB/MLflow integration
-- **Cross-species evaluation**: Transfer learning framework
+### Phase 04: Enhanced Evaluation (Complete)
+- ✅ **Class-weighted loss**: `TrainingConfig.use_class_weights` opt-in parameter
+- ✅ **Bootstrap significance testing**: `compute_metrics_with_ci()` and `bootstrap_auc_comparison()`
+- ✅ **Experiment tracking**: Optional WandB integration via `ExperimentConfig.tracker = "wandb"`
+- ✅ **Cross-species evaluation**: `run_cross_species_eval()` and `run_significance_test()` functions
 
-### Phase 05: Extended Backbones
-- **Evo model integration**: Cross-species transfer learning
-- **HyenaDNA integration**: State space models
-- **Caduceus integration**: Bidirectional processing
-- **Ensemble prediction**: Multi-model combination
+### Phase 05: Extended Backbones (Complete)
+- ✅ **Evo model integration**: `BertNupEvo` with StripedHyena architecture (7B params)
+- ✅ **State space models**: `BertNupSSM` supporting HyenaDNA and Caduceus
+- ✅ **Ensemble prediction**: Weighted multi-model averaging in `ensemble.py`
+- ✅ **Benchmarking tool**: Model comparison with bootstrap CI in `benchmark.py`
+- ✅ **Centralized dispatch**: `get_model_class()` in `models/__init__.py`
 
-### Phase 06+: Research Features
-- **Attention analysis 2.0**: Deeper biological insights
-- **Model distillation**: Smaller, faster models
+### Future Extensions
+- **Model distillation**: Smaller, faster models for deployment
 - **Multi-modal integration**: Combine with epigenetic data
 - **Active learning**: Intelligent sample selection
+- **Advanced attention analysis**: Deeper biological insights
 
 ---
 

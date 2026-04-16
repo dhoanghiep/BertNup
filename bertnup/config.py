@@ -43,6 +43,7 @@ class TrainingConfig:
     gradient_accumulation_steps: int = 1
     lr_scheduler_type: str = "linear"
     augment_rc: bool = False
+    use_class_weights: bool = False
 
 
 @dataclass
@@ -61,6 +62,14 @@ class OutputConfig:
 
 
 @dataclass
+class ExperimentConfig:
+    tracker: Optional[str] = None  # "wandb" or None
+    project: str = "bertnup"
+    run_name: Optional[str] = None
+    save_dir: str = "wandb_logs"
+
+
+@dataclass
 class Config:
     seed: int = 0
     device: str = "auto"
@@ -68,6 +77,7 @@ class Config:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     data: DataConfig = field(default_factory=DataConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
+    experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
 
 
 def _detect_model_type(model_name: str) -> str:
@@ -78,6 +88,12 @@ def _detect_model_type(model_name: str) -> str:
         return "nucleotide_transformer"
     elif "DNABERT-2" in model_name:
         return "dnabert2"
+    elif "evo-1" in model_name:
+        return "evo"
+    elif "hyena-dna" in model_name or "hyena_dna" in model_name:
+        return "hyena_dna"
+    elif "caduceus" in model_name:
+        return "caduceus"
     return "dnabert1"  # fallback
 
 
@@ -88,6 +104,9 @@ _DEFAULT_YAML_FIXED_LENGTH = 70
 _MODEL_TYPE_DEFAULTS = {
     "nucleotide_transformer": {"hidden_size": 1280, "fixed_length": 30},
     "dnabert2": {"hidden_size": 768, "fixed_length": 70},
+    "evo": {"hidden_size": 4096, "fixed_length": 160},
+    "hyena_dna": {"hidden_size": 256, "fixed_length": 160},
+    "caduceus": {"hidden_size": 768, "fixed_length": 160},
 }
 
 
@@ -129,6 +148,7 @@ def load_config(config_path: Optional[str] = None, overrides: Optional[list[str]
     training_cfg = TrainingConfig(**cfg.get("training", {}))
     data_cfg = DataConfig(**cfg.get("data", {}))
     output_cfg = OutputConfig(**cfg.get("output", {}))
+    experiment_cfg = ExperimentConfig(**cfg.get("experiment", {}))
 
     return Config(
         seed=cfg.get("seed", 0),
@@ -137,4 +157,5 @@ def load_config(config_path: Optional[str] = None, overrides: Optional[list[str]
         training=training_cfg,
         data=data_cfg,
         output=output_cfg,
+        experiment=experiment_cfg,
     )

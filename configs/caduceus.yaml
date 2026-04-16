@@ -1,0 +1,6 @@
+model:
+  name: kuleshov-group/caduceus-ms_large
+  type: caduceus
+  hidden_size: 768
+  fixed_length: 160
+  pooling: mean

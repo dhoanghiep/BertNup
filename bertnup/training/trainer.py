@@ -20,6 +20,25 @@ from bertnup.models import create_model
 from bertnup.seed import set_seed
 
 
+def _get_logger(config: Config):
+    """Create optional experiment logger based on config."""
+    tracking = getattr(config, "experiment", None)
+    if tracking is None:
+        return None
+    tracker_type = getattr(tracking, "tracker", None)
+    if tracker_type == "wandb":
+        try:
+            from pytorch_lightning.loggers import WandbLogger
+        except ImportError:
+            raise ImportError("wandb is required for WandB tracking. Install with: pip install wandb")
+        return WandbLogger(
+            project=getattr(tracking, "project", "bertnup"),
+            name=getattr(tracking, "run_name", None),
+            save_dir=getattr(tracking, "save_dir", "wandb_logs"),
+        )
+    return None
+
+
 def _get_accelerator(device: str) -> str:
     """Map config device string to PL accelerator."""
     if device == "auto":
@@ -41,7 +60,7 @@ def _build_dataloaders(config: Config, train_path: str, val_path: str, test_path
         val_set = create_dataset("dnabert1", val_path, kmer=mc.kmer)
         test_set = create_dataset("dnabert1", test_path, kmer=mc.kmer)
     else:
-        trust_remote = mc.type == "dnabert2"
+        trust_remote = mc.type in ("dnabert2", "evo", "hyena_dna", "caduceus")
         tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=trust_remote)
         train_set = create_dataset(mc.type, train_path, tokenizer=tokenizer, fixed_length=mc.fixed_length, augment_rc=tc.augment_rc)
         val_set = create_dataset(mc.type, val_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
@@ -96,6 +115,15 @@ def run_training(config: Config, data_dir: str) -> dict:
     model.hparams.weight_decay = config.training.weight_decay
     model.hparams.lr_scheduler_type = config.training.lr_scheduler_type
 
+    # Apply class weights if enabled
+    if config.training.use_class_weights:
+        import pandas as pd
+        train_df = pd.read_csv(train_path)
+        counts = train_df["label"].value_counts().sort_index().values
+        total = counts.sum()
+        weights = (total / (len(counts) * counts)).tolist()
+        model.hparams.class_weights = weights
+
     checkpoint_dir = os.path.join(config.output.checkpoint_dir, config.model.name.replace("/", "_"))
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
@@ -115,6 +143,8 @@ def run_training(config: Config, data_dir: str) -> dict:
             )
         )
 
+    experiment_logger = _get_logger(config)
+
     trainer = Trainer(
         accelerator=_get_accelerator(config.device),
         devices=1,
@@ -125,6 +155,7 @@ def run_training(config: Config, data_dir: str) -> dict:
         callbacks=callbacks,
         val_check_interval=config.training.val_check_interval,
         enable_model_summary=False,
+        logger=experiment_logger,
     )
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
@@ -190,6 +221,15 @@ def run_kfold_cv(
         model.hparams.learning_rate = config.training.learning_rate
         model.hparams.weight_decay = config.training.weight_decay
         model.hparams.lr_scheduler_type = config.training.lr_scheduler_type
+
+        # Apply class weights if enabled
+        if config.training.use_class_weights:
+            import pandas as pd
+            train_df = pd.read_csv(train_path)
+            counts = train_df["label"].value_counts().sort_index().values
+            total = counts.sum()
+            weights = (total / (len(counts) * counts)).tolist()
+            model.hparams.class_weights = weights
 
         checkpoint_dir = os.path.join(
             config.output.checkpoint_dir, f"{data_name}_fold{no_split}"
@@ -258,21 +298,14 @@ def run_evaluation(
 
     mc = config.model
 
-    from bertnup.models.dnabert1 import BertNupV1
-    from bertnup.models.dnabert2 import BertNupV2
-    from bertnup.models.nucleotide_transformer import BertNupNT
+    from bertnup.models import get_model_class
 
-    model_classes = {
-        "dnabert1": BertNupV1,
-        "dnabert2": BertNupV2,
-        "nucleotide_transformer": BertNupNT,
-    }
-    model_class = model_classes[mc.type]
+    model_class = get_model_class(mc.type)
 
     if mc.type == "dnabert1":
         test_set = create_dataset("dnabert1", test_path, kmer=mc.kmer)
     else:
-        trust_remote = mc.type == "dnabert2"
+        trust_remote = mc.type in ("dnabert2", "evo", "hyena_dna", "caduceus")
         tokenizer = AutoTokenizer.from_pretrained(mc.name, trust_remote_code=trust_remote)
         test_set = create_dataset(mc.type, test_path, tokenizer=tokenizer, fixed_length=mc.fixed_length)
 

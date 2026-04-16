@@ -65,6 +65,10 @@ def _build_config(args) -> "Config":
         overrides.append(f"training.lr_scheduler_type={args.lr_scheduler}")
     if hasattr(args, "augment_rc") and args.augment_rc:
         overrides.append("training.augment_rc=true")
+    if hasattr(args, "use_class_weights") and args.use_class_weights:
+        overrides.append("training.use_class_weights=true")
+    if hasattr(args, "tracker") and args.tracker is not None:
+        overrides.append(f"experiment.tracker={args.tracker}")
     if hasattr(args, "seed") and args.seed is not None:
         overrides.append(f"seed={args.seed}")
     if hasattr(args, "device") and args.device is not None:
@@ -124,6 +128,20 @@ def cmd_cross_validate(args):
         data_name=args.data_name,
         start_fold=args.start_fold,
         end_fold=args.end_fold,
+    )
+
+
+def cmd_evaluate_cross_species(args):
+    """Train on one species, evaluate on held-out species."""
+    _suppress_logging()
+    from bertnup.training.evaluation import run_cross_species_eval
+
+    config = _build_config(args)
+    run_cross_species_eval(
+        config,
+        train_species_dir=args.train_species_dir,
+        test_species_dirs=args.test_species_dirs,
+        output_path=args.output,
     )
 
 
@@ -250,6 +268,8 @@ def _add_training_args(parser: argparse.ArgumentParser):
     parser.add_argument("--gradient-accumulation-steps", type=int, default=None, help="Gradient accumulation steps")
     parser.add_argument("--lr-scheduler", type=str, default=None, choices=["linear", "cosine"], help="LR scheduler type")
     parser.add_argument("--augment-rc", action="store_true", default=False, help="Augment with reverse complement")
+    parser.add_argument("--use-class-weights", action="store_true", default=False, help="Use inverse-frequency class weights for loss")
+    parser.add_argument("--tracker", type=str, default=None, choices=["wandb"], help="Experiment tracker")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -302,6 +322,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--head", type=int, default=None, help="Attention head (None = all)")
     p.add_argument("--aggregate", action="store_true", help="Visualize aggregate attention across test set")
 
+    # evaluate_cross_species
+    p = subparsers.add_parser("evaluate_cross_species", help="Train on one species, evaluate on held-out species")
+    p.add_argument("train_species_dir", help="Path to training species data dir (train.csv, val.csv, test.csv)")
+    p.add_argument("test_species_dirs", nargs="+", help="Paths to test species data dirs")
+    _add_common_args(p)
+    _add_training_args(p)
+    p.add_argument("--output", type=str, default=None, help="Output CSV path for results")
+
     return parser
 
 
@@ -319,6 +347,7 @@ def main():
         "evaluate": cmd_evaluate,
         "cross_validate": cmd_cross_validate,
         "visualize_attention": cmd_visualize_attention,
+        "evaluate_cross_species": cmd_evaluate_cross_species,
     }
     handlers[args.command](args)
 

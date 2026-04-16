@@ -30,6 +30,13 @@ training:
   gradient_accumulation_steps: 1
   lr_scheduler_type: linear
   augment_rc: false
+  use_class_weights: false
+
+experiment:
+  tracker: null
+  project: bertnup
+  run_name: null
+  save_dir: wandb_logs
 
 data:
   all_data_dir: Data/Stratified_K_fold_data

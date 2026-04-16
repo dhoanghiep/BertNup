@@ -1,0 +1,9 @@
+model:
+  name: togethercomputer/evo-1-8k-base
+  type: evo
+  hidden_size: 4096
+  fixed_length: 160
+  pooling: mean
+  use_lora: true
+  lora_rank: 16
+  lora_alpha: 64

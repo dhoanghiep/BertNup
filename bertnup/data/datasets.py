@@ -99,9 +99,9 @@ def create_dataset(
         if kmer is None:
             raise ValueError("kmer is required for dnabert1 model type")
         return Dnabert1Dataset(data_path, kmer, max_token_length, augment_rc=augment_rc)
-    elif model_type in ("dnabert2", "nucleotide_transformer"):
+    elif model_type in ("dnabert2", "nucleotide_transformer", "evo", "hyena_dna", "caduceus"):
         if tokenizer is None:
-            raise ValueError("tokenizer is required for dnabert2/nucleotide_transformer model type")
+            raise ValueError(f"tokenizer is required for {model_type} model type")
         return Dnabert2Dataset(data_path, tokenizer, fixed_length, augment_rc=augment_rc)
     else:
         raise ValueError(f"Unknown model type: {model_type}")

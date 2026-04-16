@@ -1,0 +1,6 @@
+model:
+  name: LongSafari/hyena-dna-v1-1k-fix
+  type: hyena_dna
+  hidden_size: 256
+  fixed_length: 160
+  pooling: mean
