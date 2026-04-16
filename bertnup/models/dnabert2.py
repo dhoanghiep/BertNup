@@ -49,7 +49,8 @@ class BertNupV2(BertNupBase):
         if not hasattr(backbone_config, "pad_token_id") or backbone_config.pad_token_id is None:
             backbone_config.pad_token_id = 0
         self.dnabert = AutoModel.from_pretrained(
-            pretrained_model_name, config=backbone_config, trust_remote_code=True
+            pretrained_model_name, config=backbone_config, trust_remote_code=True,
+            low_cpu_mem_usage=False,
         )
         self.dnabert = self._apply_lora(self.dnabert)
         self.pooler = create_pooling(pooling, hidden_size)
