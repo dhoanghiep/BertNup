@@ -48,10 +48,17 @@ class BertNupV2(BertNupBase):
         backbone_config = AutoConfig.from_pretrained(pretrained_model_name, trust_remote_code=True)
         if not hasattr(backbone_config, "pad_token_id") or backbone_config.pad_token_id is None:
             backbone_config.pad_token_id = 0
-        self.dnabert = AutoModel.from_pretrained(
-            pretrained_model_name, config=backbone_config, trust_remote_code=True,
-            low_cpu_mem_usage=False,
-        )
+        # Force CPU device to prevent meta tensor creation (transformers 5.x compat)
+        # DNABERT-2 custom code may create tensors on meta device internally,
+        # ignoring low_cpu_mem_usage. torch.set_default_device forces all new
+        # tensor allocations to CPU during model construction.
+        torch.set_default_device("cpu")
+        try:
+            self.dnabert = AutoModel.from_pretrained(
+                pretrained_model_name, config=backbone_config, trust_remote_code=True,
+            )
+        finally:
+            torch.set_default_device(None)
         self.dnabert = self._apply_lora(self.dnabert)
         self.pooler = create_pooling(pooling, hidden_size)
 
