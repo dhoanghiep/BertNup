@@ -6,6 +6,7 @@ import csv
 import gc
 import os
 import pickle
+import time
 
 import numpy as np
 import torch
@@ -109,7 +110,7 @@ def run_training(config: Config, data_dir: str) -> dict:
         config, train_path, val_path, test_path
     )
 
-    model = create_model(config.model, num_training_steps, warmup_ratio=config.training.warmup_ratio)
+    model = create_model(config.model, num_training_steps, warmup_ratio=config.training.warmup_ratio, warmup_steps_override=config.training.warmup_steps)
     # Override learning rate from training config
     model.hparams.learning_rate = config.training.learning_rate
     model.hparams.weight_decay = config.training.weight_decay
@@ -161,7 +162,12 @@ def run_training(config: Config, data_dir: str) -> dict:
 
     # Evaluate on test set
     model_class = type(model)
-    best_model = model_class.load_from_checkpoint(checkpoint_callback.best_model_path)
+    best_ckpt = checkpoint_callback.best_model_path
+    if best_ckpt is None:
+        print("WARNING: No best checkpoint found. Using last model state.")
+        best_model = model
+    else:
+        best_model = model_class.load_from_checkpoint(best_ckpt)
     outputs = trainer.predict(model=best_model, dataloaders=test_loader)
     probas = torch.cat(outputs).numpy()
     labels = np.vstack(list(test_set.data.label))
@@ -169,8 +175,20 @@ def run_training(config: Config, data_dir: str) -> dict:
     sn, sp, acc, f1, mcc, auc = compute_all_metrics(probas, labels, verbose=1)
     print(f"sn: {sn:.4f}, sp: {sp:.4f}, acc: {acc:.4f}, f1: {f1:.4f}, mcc: {mcc:.4f}, auc: {auc:.4f}")
 
+    # Parseable summary for autoresearch (grep-friendly)
+    best_val_loss = checkpoint_callback.best_model_score.item() if checkpoint_callback.best_model_score is not None else float("nan")
+    peak_vram = torch.cuda.max_memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else -1.0
+    num_params = sum(p.numel() for p in best_model.parameters()) / 1e6
+    print("---")
+    print(f"val_loss:         {best_val_loss:.6f}")
+    print(f"val_acc:          {acc:.4f}")
+    print(f"val_auc:          {auc:.4f}")
+    print(f"peak_vram_mb:     {peak_vram:.1f}")
+    print(f"num_params_M:     {num_params:.1f}")
+
     # Clean up checkpoint
-    os.remove(checkpoint_callback.best_model_path)
+    if best_ckpt and os.path.exists(best_ckpt):
+        os.remove(best_ckpt)
 
     return {"sn": sn, "sp": sp, "acc": acc, "f1": f1, "mcc": mcc, "auc": auc}
 
@@ -217,7 +235,7 @@ def run_kfold_cv(
             config, train_path, val_path, test_path
         )
 
-        model = create_model(config.model, num_training_steps, warmup_ratio=config.training.warmup_ratio)
+        model = create_model(config.model, num_training_steps, warmup_ratio=config.training.warmup_ratio, warmup_steps_override=config.training.warmup_steps)
         model.hparams.learning_rate = config.training.learning_rate
         model.hparams.weight_decay = config.training.weight_decay
         model.hparams.lr_scheduler_type = config.training.lr_scheduler_type

@@ -12,3 +12,5 @@ __pycache__/
 dist/
 build/
 *.pyc
+autoresearch/results.tsv
+autoresearch/run.log
