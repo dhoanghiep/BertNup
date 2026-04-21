@@ -3,3 +3,7 @@ model:
   type: dnabert2
   fixed_length: 70
   pooling: mean
+
+training:
+  num_workers: 4
+  batch_size_test: 128

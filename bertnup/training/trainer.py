@@ -186,9 +186,9 @@ def run_training(config: Config, data_dir: str) -> dict:
     print(f"peak_vram_mb:     {peak_vram:.1f}")
     print(f"num_params_M:     {num_params:.1f}")
 
-    # Clean up checkpoint
-    if best_ckpt and os.path.exists(best_ckpt):
-        os.remove(best_ckpt)
+    # Keep best checkpoint for later evaluation
+    if best_ckpt:
+        print(f"best_checkpoint:  {best_ckpt}")
 
     return {"sn": sn, "sp": sp, "acc": acc, "f1": f1, "mcc": mcc, "auc": auc}
 

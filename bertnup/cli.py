@@ -37,6 +37,8 @@ def _build_config(args) -> "Config":
         overrides.append(f"training.batch_size_test={args.batch_size_test}")
     if hasattr(args, "warmup_ratio") and args.warmup_ratio is not None:
         overrides.append(f"training.warmup_ratio={args.warmup_ratio}")
+    if hasattr(args, "warmup_steps") and args.warmup_steps is not None:
+        overrides.append(f"training.warmup_steps={args.warmup_steps}")
     if hasattr(args, "val_check_interval") and args.val_check_interval is not None:
         overrides.append(f"training.val_check_interval={args.val_check_interval}")
     if hasattr(args, "max_grad_norm") and args.max_grad_norm is not None:
@@ -92,6 +94,17 @@ def cmd_prepare_data(args):
             n_splits=args.n_splits,
             random_state=args.random_state,
         )
+
+
+def cmd_split_single(args):
+    """Preprocess a FASTA file into a single train/val/test (8:1:1) split."""
+    from bertnup.data.preparation import single_split
+
+    single_split(
+        data_path=args.data_path,
+        save_dir=args.save_dir,
+        random_state=args.random_state,
+    )
 
 
 def cmd_train(args):
@@ -259,6 +272,7 @@ def _add_training_args(parser: argparse.ArgumentParser):
     parser.add_argument("--batch-size-train", type=int, default=None)
     parser.add_argument("--batch-size-test", type=int, default=None)
     parser.add_argument("--warmup-ratio", type=float, default=None)
+    parser.add_argument("--warmup-steps", type=int, default=None, help="Fixed warmup steps (overrides warmup-ratio)")
     parser.add_argument("--val-check-interval", type=float, default=None)
     parser.add_argument("--max-grad-norm", type=float, default=None)
     parser.add_argument("--dropout", type=float, default=None)
@@ -285,6 +299,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--save-dir", type=str, default="Data/Stratified_K_fold_data")
     p.add_argument("--n-splits", type=int, default=10)
     p.add_argument("--random-state", type=int, default=1)
+
+    # split_single
+    p = subparsers.add_parser("split_single", help="Split a FASTA file into single train/val/test (8:1:1)")
+    p.add_argument("data_path", help="Path to FASTA file")
+    p.add_argument("--save-dir", type=str, default="Data/Stratified_K_fold_data")
+    p.add_argument("--random-state", type=int, default=42)
 
     # train
     p = subparsers.add_parser("train", help="Fine-tune a model on a single split")
@@ -343,6 +363,7 @@ def main():
 
     handlers = {
         "prepare_data": cmd_prepare_data,
+        "split_single": cmd_split_single,
         "train": cmd_train,
         "evaluate": cmd_evaluate,
         "cross_validate": cmd_cross_validate,

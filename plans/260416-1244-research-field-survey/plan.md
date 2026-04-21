@@ -1,6 +1,6 @@
 ---
 name: research-field-survey
-status: active
+status: completed
 created: 2026-04-16
 blockedBy: []
 blocks: []

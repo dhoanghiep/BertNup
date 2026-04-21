@@ -36,6 +36,7 @@ class TrainingConfig:
     batch_size_test: int = 128
     num_workers: int = 0
     warmup_ratio: float = 0.1
+    warmup_steps: Optional[int] = None  # Fixed warmup steps (overrides ratio if set)
     val_check_interval: float = 0.1
     max_grad_norm: float = 10.0
     early_stopping_patience: Optional[int] = None
@@ -88,6 +89,8 @@ def _detect_model_type(model_name: str) -> str:
         return "nucleotide_transformer"
     elif "DNABERT-2" in model_name:
         return "dnabert2"
+    elif "bert-base" in model_name:
+        return "bert_baseline"
     elif "evo-1" in model_name:
         return "evo"
     elif "hyena-dna" in model_name or "hyena_dna" in model_name:

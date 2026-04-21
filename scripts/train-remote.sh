@@ -18,8 +18,8 @@
 set -euo pipefail
 
 # ── Configurable ──────────────────────────────────────────────────────────
-SSH_HOST="${BERTNUP_SSH_HOST:-ssh1.vast.ai}"
-SSH_PORT="${BERTNUP_SSH_PORT:-10622}"
+SSH_HOST="${BERTNUP_SSH_HOST:-ssh9.vast.ai}"
+SSH_PORT="${BERTNUP_SSH_PORT:-21185}"
 SSH_USER="${BERTNUP_SSH_USER:-root}"
 REMOTE_DIR="${BERTNUP_REMOTE_DIR:-/root/BertNup}"
 LOCAL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,8 +47,8 @@ while [[ $# -gt 0 ]]; do
     fi
 done
 
-RSYNC_OPTS=(-avz --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='.DS_Store' -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no")
-SSH_CMD=(ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST")
+RSYNC_OPTS=(-avz --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='.DS_Store' -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -o SetEnv=TERM=xterm-256color")
+SSH_CMD=(ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o SetEnv=TERM=xterm-256color "$SSH_USER@$SSH_HOST")
 
 # ── Sync code ─────────────────────────────────────────────────────────────
 if $SYNC_CODE; then
@@ -64,7 +64,11 @@ fi
 
 # ── Run training ─────────────────────────────────────────────────────────
 echo "==> Running training on remote GPU..."
-echo "    Command: bertnup ${BERTNUP_ARGS[*]}"
+if [[ ${#BERTNUP_ARGS[@]} -gt 0 ]]; then
+    echo "    Command: bertnup ${BERTNUP_ARGS[*]}"
+else
+    echo "    Command: (no args provided, using bertnup defaults)"
+fi
 echo
 
-"${SSH_CMD[@]}" "cd $REMOTE_DIR && KMP_DUPLICATE_LIB_OK=TRUE pip install -e . -q 2>/dev/null; bertnup ${BERTNUP_ARGS[*]}"
+"${SSH_CMD[@]}" "cd $REMOTE_DIR && KMP_DUPLICATE_LIB_OK=TRUE pip install -e . -q 2>/dev/null; bertnup ${BERTNUP_ARGS[*]:-}"

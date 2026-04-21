@@ -7,6 +7,7 @@ from bertnup.models.base import BertNupBase
 from bertnup.models.dnabert1 import BertNupV1
 from bertnup.models.dnabert2 import BertNupV2
 from bertnup.models.nucleotide_transformer import BertNupNT
+from bertnup.models.bert_baseline import BertBaseline
 
 # Optional extended backbones — import fails gracefully if deps missing
 _EVO_AVAILABLE = True
@@ -31,6 +32,7 @@ def get_model_class(model_type: str) -> type[BertNupBase]:
         "dnabert1": BertNupV1,
         "dnabert2": BertNupV2,
         "nucleotide_transformer": BertNupNT,
+        "bert_baseline": BertBaseline,
     }
     if _EVO_AVAILABLE:
         from bertnup.models.evo import BertNupEvo
@@ -45,12 +47,16 @@ def get_model_class(model_type: str) -> type[BertNupBase]:
     return _registry[model_type]
 
 
-def create_model(model_config: ModelConfig, num_training_steps: int, warmup_ratio: float = 0.1) -> BertNupBase:
+def create_model(model_config: ModelConfig, num_training_steps: int, warmup_ratio: float = 0.1, warmup_steps_override: int | None = None) -> BertNupBase:
     """Create a BertNup model based on configuration.
 
     Auto-detects model type from model_name if not explicitly set.
+    warmup_steps_override takes priority over warmup_ratio when set.
     """
-    warmup_steps = int(num_training_steps * warmup_ratio)
+    if warmup_steps_override is not None:
+        warmup_steps = warmup_steps_override
+    else:
+        warmup_steps = int(num_training_steps * warmup_ratio)
 
     common_kwargs = dict(
         pretrained_model_name=model_config.name,
@@ -69,7 +75,7 @@ def create_model(model_config: ModelConfig, num_training_steps: int, warmup_rati
             **common_kwargs,
             reinit_layers=model_config.reinit_layers,
         )
-    elif model_config.type in ("dnabert2", "nucleotide_transformer", "evo", "hyena_dna", "caduceus"):
+    elif model_config.type in ("dnabert2", "nucleotide_transformer", "evo", "hyena_dna", "caduceus", "bert_baseline"):
         model_class = get_model_class(model_config.type)
         return model_class(
             **common_kwargs,

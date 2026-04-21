@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, train_test_split
 
 
 def get_data(path_name: str) -> list[list[str]]:
@@ -70,3 +70,37 @@ def k_fold_split(
         print(f"Split {data_path} to {n_splits} groups, saved to {save_dir}/{data_name}")
     else:
         return split_dataframes
+
+
+def single_split(
+    data_path: str,
+    test_size: float = 0.1,
+    val_size: float = 0.111,
+    random_state: int = 42,
+    save_dir: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame] | None:
+    """Split a FASTA dataset into train/val/test (8:1:1 ratio).
+
+    First splits off test_size as test, then splits val_size of remaining as val.
+    Default params give 80/10/10 split.
+    If save_dir is provided, writes CSVs; otherwise returns DataFrames.
+    """
+    data_name = data_path.split("/")[-1][:-4]
+    df = generate_dataframe(get_data(data_path))
+
+    train_val, test = train_test_split(df, test_size=test_size, random_state=random_state, stratify=df["label"])
+    train, val = train_test_split(train_val, test_size=val_size, random_state=random_state, stratify=train_val["label"])
+
+    train = train.reset_index(drop=True)
+    val = val.reset_index(drop=True)
+    test = test.reset_index(drop=True)
+
+    if save_dir is not None:
+        subdir = f"{save_dir}/{data_name}_single_split/"
+        os.makedirs(subdir, exist_ok=True)
+        train.to_csv(f"{subdir}train.csv", index=False)
+        val.to_csv(f"{subdir}val.csv", index=False)
+        test.to_csv(f"{subdir}test.csv", index=False)
+        print(f"Split {data_path} to train/val/test ({len(train)}/{len(val)}/{len(test)}), saved to {subdir}")
+    else:
+        return train, val, test

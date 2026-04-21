@@ -64,6 +64,12 @@ class BertNupV2(BertNupBase):
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, labels: torch.Tensor | None = None):
         output = self.dnabert(input_ids, attention_mask=attention_mask)
-        x = self.pooler(output["last_hidden_state"], attention_mask)
+        # Custom MosaicML BertModel returns (hidden_states, pooled) tuple;
+        # standard HuggingFace returns dict-like BaseModelOutput.
+        if isinstance(output, tuple):
+            hidden_states = output[0]
+        else:
+            hidden_states = output["last_hidden_state"]
+        x = self.pooler(hidden_states, attention_mask)
         logits = self.classifier(x)
         return self._compute_loss_and_probas(logits, labels)

@@ -1,0 +1,24 @@
+description	val_loss	val_acc	val_auc	vram_gb	status
+baseline	0.240466	0.9155	0.9587	2.9	keep
+LR 5e-5	0.235976	0.9213	0.9568	2.9	keep
+LR 1e-5	0.242485	0.9134	0.9537	2.9	keep
+LR 3e-5	0.238168	0.9193	0.9583	2.9	keep
+warmup 0.2	0.236475	0.9139	0.9570	2.9	keep
+warmup 0.0	0.237010	0.9154	0.9591	2.9	keep
+warmup 40 steps	0.234798	0.9169	0.9580	2.9	keep
+batch 64	9.999999	0.0000	0.0000	0.0	crash
+batch 16	0.236627	0.9145	0.9574	2.4	keep
+max pooling	0.239447	0.9153	0.9567	2.9	keep
+attention pooling	0.239058	0.9163	0.9578	2.9	keep
+enhanced head	0.233727	0.9166	0.9588	2.9	keep
+dropout 0.3	9.999999	0.0000	0.0000	0.0	crash
+dropout 0.0	9.999999	0.0000	0.0000	0.0	crash
+reinit 2 layers	0.240466	0.9155	0.9587	2.9	keep
+reinit 4 layers	0.240466	0.9155	0.9587	2.9	keep
+LoRA r=16	9.999999	0.0000	0.0000	0.0	crash
+LoRA r=8 a=16	9.999999	0.0000	0.0000	0.0	crash
+fp16 mixed	0.235459	0.9176	0.9564	2.7	keep
+RC augment	0.213055	0.9257	0.9658	2.9	keep
+cosine LR	0.237864	0.9169	0.9575	2.9	keep
+weight decay 0.05	0.240466	0.9155	0.9587	2.9	keep
+grad accum 2	0.239252	0.9155	0.9556	2.9	keep
